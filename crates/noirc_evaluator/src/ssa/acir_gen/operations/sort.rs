@@ -115,7 +115,7 @@ fn permutation_layer(
 mod test {
     use acvm::{
         acir::native_types::WitnessMap,
-        pwg::{OpcodeResolutionError, PartialWitnessGeneratorStatus, ACVM},
+        pwg::{ACVMStatus, OpcodeResolutionError, ACVM},
         BlackBoxFunctionSolver, FieldElement,
     };
 
@@ -192,11 +192,11 @@ mod test {
             }
             // compute the network output by solving the constraints
             let backend = MockBackend {};
-            let acvm = ACVM::new(backend, eval.opcodes.clone(), initial_witness);
-            let solver_status = acvm.solve().expect("Could not solve permutation constraints");
-            assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "Incomplete solution");
-            let solved_witness = acvm.finalize();
+            let mut acvm = ACVM::new(backend, eval.opcodes.clone(), initial_witness);
+            let solver_status = acvm.solve();
+            assert_eq!(solver_status, ACVMStatus::Solved, "Incomplete solution");
 
+            let solved_witness = acvm.finalize();
             let mut b_val = Vec::new();
             for i in 0..output.len() {
                 b_val.push(solved_witness[&b_wit[i]]);
