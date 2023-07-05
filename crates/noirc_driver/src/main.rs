@@ -2,10 +2,7 @@ use acvm::Language;
 use noirc_driver::{
     add_dep, compile_main, create_local_crate, create_non_local_crate, CompileOptions,
 };
-use noirc_frontend::{
-    graph::{CrateType, LOCAL_CRATE},
-    hir::Context,
-};
+use noirc_frontend::{graph::LOCAL_CRATE, hir::Context};
 fn main() {
     const EXTERNAL_DIR: &str = "dep_b/lib.nr";
     const EXTERNAL_DIR2: &str = "dep_a/lib.nr";
@@ -14,11 +11,11 @@ fn main() {
     let mut context = Context::default();
 
     // Add local crate to dep graph
-    create_local_crate(&mut context, ROOT_DIR_MAIN, CrateType::Binary);
+    create_local_crate(&mut context, ROOT_DIR_MAIN);
 
     // Add libraries into Driver
-    let crate_id1 = create_non_local_crate(&mut context, EXTERNAL_DIR2, CrateType::Library);
-    let crate_id2 = create_non_local_crate(&mut context, EXTERNAL_DIR, CrateType::Library);
+    let crate_id1 = create_non_local_crate(&mut context, EXTERNAL_DIR2);
+    let crate_id2 = create_non_local_crate(&mut context, EXTERNAL_DIR);
 
     // Add dependencies as package
     add_dep(&mut context, LOCAL_CRATE, crate_id1, "coo4");

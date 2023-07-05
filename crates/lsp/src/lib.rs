@@ -19,7 +19,7 @@ use lsp_types::{
 };
 use noirc_driver::{check_crate, create_local_crate};
 use noirc_errors::{DiagnosticKind, FileDiagnostic};
-use noirc_frontend::{graph::CrateType, hir::Context};
+use noirc_frontend::hir::Context;
 use serde_json::Value as JsonValue;
 use tower::Service;
 
@@ -135,7 +135,7 @@ fn on_code_lens_request(
 ) -> impl Future<Output = Result<Option<Vec<CodeLens>>, ResponseError>> {
     let file_path = &params.text_document.uri.to_file_path().unwrap();
 
-    let crate_id = create_local_crate(&mut state.context, file_path, CrateType::Binary);
+    let crate_id = create_local_crate(&mut state.context, file_path);
 
     // We ignore the warnings and errors produced by compilation for producing codelenses
     // because we can still get the test functions even if compilation fails
@@ -220,7 +220,7 @@ fn on_did_save_text_document(
 ) -> ControlFlow<Result<(), async_lsp::Error>> {
     let file_path = &params.text_document.uri.to_file_path().unwrap();
 
-    create_local_crate(&mut state.context, file_path, CrateType::Binary);
+    create_local_crate(&mut state.context, file_path);
 
     let mut diagnostics = Vec::new();
 

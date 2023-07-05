@@ -11,7 +11,7 @@ use fm::{FileId, FileType};
 use noirc_abi::FunctionSignature;
 use noirc_errors::{CustomDiagnostic, FileDiagnostic};
 use noirc_evaluator::{create_circuit, ssa_refactor::experimental_create_circuit};
-use noirc_frontend::graph::{CrateId, CrateName, CrateType, LOCAL_CRATE};
+use noirc_frontend::graph::{CrateId, CrateName, LOCAL_CRATE};
 use noirc_frontend::hir::def_map::{Contract, CrateDefMap};
 use noirc_frontend::hir::Context;
 use noirc_frontend::monomorphization::monomorphize;
@@ -74,7 +74,7 @@ pub fn compile_file(
     np_language: Language,
     is_opcode_supported: &impl Fn(&Opcode) -> bool,
 ) -> Result<(CompiledProgram, Warnings), ErrorsAndWarnings> {
-    create_local_crate(context, root_file, CrateType::Binary);
+    create_local_crate(context, root_file);
     compile_main(context, np_language, is_opcode_supported, &CompileOptions::default())
 }
 
@@ -84,15 +84,11 @@ pub fn compile_file(
 /// we have multiple binaries in one workspace
 /// A Fix would be for the driver instance to store the local crate id.
 // Granted that this is the only place which relies on the local crate being first
-pub fn create_local_crate<P: AsRef<Path>>(
-    context: &mut Context,
-    root_file: P,
-    crate_type: CrateType,
-) -> CrateId {
+pub fn create_local_crate<P: AsRef<Path>>(context: &mut Context, root_file: P) -> CrateId {
     let dir_path = root_file.as_ref().to_path_buf();
     let root_file_id = context.file_manager.add_file(&dir_path, FileType::Root).unwrap();
 
-    let crate_id = context.crate_graph.add_crate_root(crate_type, root_file_id);
+    let crate_id = context.crate_graph.add_crate_root(root_file_id);
 
     assert!(crate_id == LOCAL_CRATE);
 
@@ -101,11 +97,7 @@ pub fn create_local_crate<P: AsRef<Path>>(
 
 /// Creates a Non Local Crate. A Non Local Crate is any crate which is the not the crate that
 /// the compiler is compiling.
-pub fn create_non_local_crate<P: AsRef<Path>>(
-    context: &mut Context,
-    root_file: P,
-    crate_type: CrateType,
-) -> CrateId {
+pub fn create_non_local_crate<P: AsRef<Path>>(context: &mut Context, root_file: P) -> CrateId {
     let dir_path = root_file.as_ref().to_path_buf();
     let root_file_id = context.file_manager.add_file(&dir_path, FileType::Root).unwrap();
 
@@ -114,7 +106,7 @@ pub fn create_non_local_crate<P: AsRef<Path>>(
 
     // You can add any crate type to the crate graph
     // but you cannot depend on Binaries
-    context.crate_graph.add_crate_root(crate_type, root_file_id)
+    context.crate_graph.add_crate_root(root_file_id)
 }
 
 /// Adds a edge in the crate graph for two crates
@@ -123,7 +115,7 @@ pub fn add_dep(context: &mut Context, this_crate: CrateId, depends_on: CrateId, 
         .expect("crate name contains blacklisted characters, please remove");
 
     // Cannot depend on a binary
-    if context.crate_graph.crate_type(depends_on) == CrateType::Binary {
+    if context.is_binary_crate(&depends_on) {
         panic!("crates cannot depend on binaries. {crate_name:?} is a binary crate")
     }
 
@@ -164,7 +156,7 @@ pub fn check_crate(
     // parts of the code expect the `0` FileID to be the crate root. See also #1681
     let std_crate_name = "std";
     let path_to_std_lib_file = PathBuf::from(std_crate_name).join("lib.nr");
-    let std_crate = create_non_local_crate(context, path_to_std_lib_file, CrateType::Library);
+    let std_crate = create_non_local_crate(context, path_to_std_lib_file);
     propagate_dep(context, std_crate, &CrateName::new(std_crate_name).unwrap());
 
     let mut errors = vec![];
